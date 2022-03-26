@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\sasha\\source\\repos\\laba_2\\laba_2\\laba_2.csproj",
+      "projectUniqueName": "C:\\Users\\sasha\\Downloads\\computational_algorithms-main\\laba_2\\laba_2\\laba_2.csproj",
       "projectName": "laba_2",
-      "projectPath": "C:\\Users\\sasha\\source\\repos\\laba_2\\laba_2\\laba_2.csproj",
+      "projectPath": "C:\\Users\\sasha\\Downloads\\computational_algorithms-main\\laba_2\\laba_2\\laba_2.csproj",
       "packagesPath": "C:\\Users\\sasha\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\sasha\\source\\repos\\laba_2\\laba_2\\obj\\",
+      "outputPath": "C:\\Users\\sasha\\Downloads\\computational_algorithms-main\\laba_2\\laba_2\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\sasha\\AppData\\Roaming\\NuGet\\NuGet.Config",
