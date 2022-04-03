@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.InteropServices.ComTypes;
+using System.Diagnostics;
 
 namespace Gauss
 {
     class Program
     {
+        private const double e = 1e-20;                    // Погрешность вычислений
         static void Main(string[] args)
         {
 
@@ -32,14 +31,56 @@ namespace Gauss
             for (int i = 0; i < n; ++i)
                 matrixB[i] = rnd.Next(a, b);
 
-            Show(matrixA, matrixB, n);
-            var result = Gauss(matrixA, matrixB, n);
-            for (int i = 0; i < n; ++i)
-                Console.WriteLine(i + ": " + result[i]);
+            PrintSlau(matrixA, matrixB);
+
+            bool flag = true;
+
+            var mtrxX = Gauss(matrixA, matrixB, n, true);
+            PrintVector("Результат: ", mtrxX);
+            // Уточнение результата
+            while (flag)
+            {
+                // вычисление вектора невязки
+                var mtrxB = new double[n];
+                for (int i = 0; i < n; ++i)
+                {
+                    mtrxB[i] = 0;
+                    for (int j = 0; j < n; ++j)
+                        mtrxB[i] += matrixA[i, j] * mtrxX[j];
+                }
+                var mtrxR = new double[n]; // Невязка
+                for (int i = 0; i < n; ++i)
+                {
+                    mtrxR[i] = matrixB[i] - mtrxB[i];
+                }
+                // Вывод невязки
+                PrintVector("Невязка: ", mtrxR);
+
+                var mtrxDelX = new double[n]; // Вектор поправки
+
+                mtrxDelX = Gauss(matrixA, mtrxR, n, true);
+
+                for (int i = 0; i < n; ++i)
+                {
+                    mtrxX[i] = mtrxX[i] + mtrxDelX[i];
+                }
+                // Проверка на то, стоит ли продолжать
+                for (int i = 0; i < n; ++i)
+                {
+                    if (mtrxDelX[i] > e)
+                        break;
+                    flag = false;
+                }
+            }
+
+            // Конечный результат
+            PrintVector("Конечный результат: ", mtrxX);
+            Comparison(a, b);
         }
 
-        private static void Show(double[,] matrixA, double[] matrixB, int n)
+        private static void PrintSlau(double[,] matrixA, double[] matrixB)
         {
+            int n = matrixB.Length;
             Console.WriteLine("Матрица");
             for (int i = 0; i < n; ++i)
             {
@@ -53,14 +94,21 @@ namespace Gauss
             }
         }
 
-        private static double[] Gauss(double[,] matrixA, double[] matrixB, int n)
+        private static void PrintVector(string text, double[] matrix)
+        {
+            Console.WriteLine(text);
+            for (int i = 0; i < matrix.Length; ++i)
+                Console.WriteLine(i + ": " + matrix[i]);
+        }
+
+        private static double[] Gauss(double[,] matrixA, double[] matrixB, int n, bool show)
         {
             var matrixX = new double[n];
             int k = 0; // Номер шага
             // Прямой ход – приведение СЛАУ к треугольному виду
             while (k < n)
             {
-                Console.WriteLine("\n\t\t\tШаг " + k + '\n');
+                if (show) Console.WriteLine("\n\n\t\t\tШаг " + k + "\n\n");
                 // Деление k-того уравнения на ведущий коэфициент
                 double temp = matrixA[k, k];
                 if (Math.Abs(temp) == 0) continue; // для нулевого коэффициента пропустить
@@ -74,14 +122,14 @@ namespace Gauss
                     double temp2 = matrixA[i, k];
                     if (i == k)
                     {
-                        Console.WriteLine("i==k");
-                        Show(matrixA, matrixB, n); 
+                        if (show) Console.WriteLine("i==k");
+                        if (show) PrintSlau(matrixA, matrixB);
                         continue; // уравнение не вычитать само из себя
                     }
                     for (int j = 0; j < n; j++)
-                        matrixA[i, j] = matrixA[i, j] - matrixA[k, j]*temp2;
-                    matrixB[i] = matrixB[i] - matrixB[k]*temp2;
-                    Show(matrixA, matrixB, n);
+                        matrixA[i, j] = matrixA[i, j] - matrixA[k, j] * temp2;
+                    matrixB[i] = matrixB[i] - matrixB[k] * temp2;
+                    if (show) PrintSlau(matrixA, matrixB);
                 }
                 k++;
             }
@@ -98,6 +146,109 @@ namespace Gauss
             }
 
             return matrixX;
+        }
+
+        private static double[] GaussСhoice(double[,] matrixA, double[] matrixB, int n)
+        {
+            var matrixX = new double[n];
+            int k = 0; // Номер шага
+            int index;
+            double max;
+            // Прямой ход – приведение СЛАУ к треугольному виду
+            while (k < n)
+            {
+                // Поиск строки с максимальным a[i][k]
+                max = Math.Abs(matrixA[k, k]);
+                index = k;
+                for (int i = k + 1; i < n; i++)
+                {
+                    if (Math.Abs(matrixA[i, k]) > max)
+                    {
+                        max = Math.Abs(matrixA[i, k]);
+                        index = i;
+                    }
+                }
+                // Перестановка строк
+                if (max == 0)
+                {
+                    // нет ненулевых диагональных элементов
+                    Console.WriteLine("Решение получить невозможно из-за нулевого столбца " + index + " матрицы A");
+                    return new double[] { 0 };
+                }
+                for (int j = 0; j < n; j++)
+                {
+                    (matrixA[k, j], matrixA[index, j]) = (matrixA[index, j], matrixA[k, j]);
+                }
+                (matrixB[k], matrixB[index]) = (matrixB[index], matrixB[k]);
+
+                // Деление k-того уравнения на ведущий коэфициент
+                double temp = matrixA[k, k];
+                if (Math.Abs(temp) == 0) continue; // для нулевого коэффициента пропустить
+                for (int j = 0; j < n; j++)
+                    matrixA[k, j] = matrixA[k, j] / temp;
+                matrixB[k] = matrixB[k] / temp;
+
+                // Исключение переменной xk. Вычитание из k+1-ого уравнения k-того уравнения, умноженного на ведущий коэфициент k+1-ого 
+                for (int i = k; i < n; i++)
+                {
+                    double temp2 = matrixA[i, k];
+                    if (i == k) continue; // уравнение не вычитать само из себя
+
+                    for (int j = 0; j < n; j++)
+                        matrixA[i, j] = matrixA[i, j] - matrixA[k, j] * temp2;
+                    matrixB[i] = matrixB[i] - matrixB[k] * temp2;
+                }
+                k++;
+            }
+
+            // Обратный ход Гаусса
+            for (k = n - 1; k >= 0; k--)
+            {
+                double s = 0;
+                for (int j = n - 1; j > k; j--)
+                {
+                    s += matrixX[j] * matrixA[k, j];
+                }
+                matrixX[k] = (matrixB[k] - s);
+            }
+
+            return matrixX;
+        }
+
+        private static void Comparison(int a, int b)
+        {
+            Console.WriteLine(
+                "\n\n\tСравнение временных характеристик решения СЛАУ методом Гаусса и Методом Гаусса с выбором главного элемента\n");
+            Console.WriteLine("Порядок\t\tГаусс\t\tГаусс с выбором");
+            for (int i = 100; i <= 200; i += 10)
+            {
+                Stopwatch GaussTime = new Stopwatch(), GaussChoiceTime = new Stopwatch();
+
+                var matrixA = new double[i, i];             // Коэффициенты
+                var matrixB = new double[i];                // Свободные члены
+                Random rnd = new Random();
+                // Заполнение коэффициентов
+                for (int k = 0; k < i; ++k)
+                {
+                    for (int j = 0; j < i; ++j)
+                    {
+                        matrixA[k, j] = rnd.Next(a, b);
+                    }
+                }
+                // Заполнение свободных членов
+                for (int k = 0; k < i; ++k)
+                    matrixB[k] = rnd.Next(a, b);
+
+                GaussTime.Start();
+                Gauss(matrixA, matrixB, i, false);
+                GaussTime.Stop();
+
+                GaussChoiceTime.Start();
+                GaussСhoice(matrixA, matrixB, i);
+                GaussChoiceTime.Stop();
+
+                Console.WriteLine(i + "\t\t" + GaussTime.ElapsedTicks + "\t\t" + GaussChoiceTime.ElapsedTicks);
+            }
         }
     }
 }
